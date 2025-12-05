@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar';
 import { ContentViewer } from '@/components/ContentViewer';
 import { WelcomeScreen } from '@/components/WelcomeScreen';
-import { certifications, Certification, Category, Topic } from '@/data/certificationData';
+import { MarkAsReadDialog } from '@/components/MarkAsReadDialog';
+import { certifications, Category, Topic } from '@/data/certificationData';
 import { useProgress } from '@/hooks/useProgress';
 import { Button } from '@/components/ui/button';
 
@@ -14,9 +16,14 @@ interface SelectedTopic {
 }
 
 const Index = () => {
-  const [selectedCertification, setSelectedCertification] = useState<string>('symfony');
+  const { certificationId, categoryId, topicId } = useParams();
+  const navigate = useNavigate();
+  
+  const [selectedCertification, setSelectedCertification] = useState<string>(certificationId || 'symfony');
   const [selectedTopic, setSelectedTopic] = useState<SelectedTopic | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showMarkAsReadDialog, setShowMarkAsReadDialog] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<'prev' | 'next' | null>(null);
   
   const {
     completed,
@@ -26,6 +33,30 @@ const Index = () => {
     isFavorite,
     setLastVisited,
   } = useProgress();
+
+  // Initialize from URL params
+  useEffect(() => {
+    if (certificationId) {
+      const cert = certifications.find(c => c.id === certificationId);
+      if (cert) {
+        setSelectedCertification(certificationId);
+        
+        if (categoryId && topicId) {
+          const category = cert.categories.find(c => c.id === categoryId);
+          if (category) {
+            const topic = category.topics.find(t => t.id === topicId);
+            if (topic) {
+              setSelectedTopic({
+                certificationId,
+                categoryId,
+                topicId,
+              });
+            }
+          }
+        }
+      }
+    }
+  }, [certificationId, categoryId, topicId]);
 
   // Calculate totals
   const totalCounts = useMemo(() => {
@@ -78,7 +109,8 @@ const Index = () => {
   const handleSelectTopic = useCallback((certId: string, catId: string, topicId: string) => {
     setSelectedTopic({ certificationId: certId, categoryId: catId, topicId });
     setLastVisited(`${certId}-${catId}-${topicId}`);
-  }, [setLastVisited]);
+    navigate(`/${certId}/${catId}/${topicId}`);
+  }, [setLastVisited, navigate]);
 
   const handleSelectFirstTopic = useCallback((certId: string) => {
     setSelectedCertification(certId);
@@ -90,7 +122,7 @@ const Index = () => {
     }
   }, [handleSelectTopic]);
 
-  const handleNavigate = useCallback((direction: 'prev' | 'next') => {
+  const performNavigation = useCallback((direction: 'prev' | 'next') => {
     if (currentTopicIndex === -1) return;
     
     const newIndex = direction === 'prev' ? currentTopicIndex - 1 : currentTopicIndex + 1;
@@ -99,6 +131,36 @@ const Index = () => {
       handleSelectTopic(newTopic.certId, newTopic.catId, newTopic.topicId);
     }
   }, [currentTopicIndex, allTopics, handleSelectTopic]);
+
+  const handleNavigate = useCallback((direction: 'prev' | 'next') => {
+    if (direction === 'next' && selectedTopic) {
+      const topicFullId = `${selectedTopic.certificationId}-${selectedTopic.categoryId}-${selectedTopic.topicId}`;
+      if (!isCompleted(topicFullId)) {
+        setPendingNavigation(direction);
+        setShowMarkAsReadDialog(true);
+        return;
+      }
+    }
+    performNavigation(direction);
+  }, [selectedTopic, isCompleted, performNavigation]);
+
+  const handleMarkAsReadAndNavigate = useCallback(() => {
+    if (selectedTopic && pendingNavigation) {
+      const topicFullId = `${selectedTopic.certificationId}-${selectedTopic.categoryId}-${selectedTopic.topicId}`;
+      toggleCompleted(topicFullId);
+      performNavigation(pendingNavigation);
+    }
+    setShowMarkAsReadDialog(false);
+    setPendingNavigation(null);
+  }, [selectedTopic, pendingNavigation, toggleCompleted, performNavigation]);
+
+  const handleSkipNavigation = useCallback(() => {
+    if (pendingNavigation) {
+      performNavigation(pendingNavigation);
+    }
+    setShowMarkAsReadDialog(false);
+    setPendingNavigation(null);
+  }, [pendingNavigation, performNavigation]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -130,6 +192,17 @@ const Index = () => {
     ? `${selectedTopic.certificationId}-${selectedTopic.categoryId}-${selectedTopic.topicId}`
     : '';
 
+  const handleGoHome = useCallback(() => {
+    setSelectedTopic(null);
+    navigate('/');
+  }, [navigate]);
+
+  const handleSelectCertification = useCallback((id: string) => {
+    setSelectedCertification(id);
+    setSelectedTopic(null);
+    navigate(`/${id}`);
+  }, [navigate]);
+
   return (
     <div className="flex h-screen overflow-hidden dark">
       {/* Mobile overlay */}
@@ -144,12 +217,9 @@ const Index = () => {
         certifications={certifications}
         selectedCertification={selectedCertification}
         selectedTopic={topicFullId || null}
-        onSelectCertification={(id) => {
-          setSelectedCertification(id);
-          setSelectedTopic(null);
-        }}
+        onSelectCertification={handleSelectCertification}
         onSelectTopic={handleSelectTopic}
-        onGoHome={() => setSelectedTopic(null)}
+        onGoHome={handleGoHome}
         isCompleted={isCompleted}
         isFavorite={isFavorite}
         completedCount={currentCompleted}
@@ -194,6 +264,17 @@ const Index = () => {
           />
         )}
       </div>
+
+      {/* Mark as read dialog */}
+      {currentTopicData && (
+        <MarkAsReadDialog
+          open={showMarkAsReadDialog}
+          onOpenChange={setShowMarkAsReadDialog}
+          onMarkAsRead={handleMarkAsReadAndNavigate}
+          onSkip={handleSkipNavigation}
+          topicTitle={currentTopicData.topic.title}
+        />
+      )}
     </div>
   );
 };
