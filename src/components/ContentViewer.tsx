@@ -1,3 +1,4 @@
+import { useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Check, Star, ChevronLeft, ChevronRight, Loader2, AlertCircle, ExternalLink } from 'lucide-react';
@@ -35,10 +36,21 @@ export function ContentViewer({
   hasPrev,
   hasNext,
 }: ContentViewerProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
   const contentUrl = `${certification.baseUrl}${category.folder}/${topic.path}`;
   const { content, isLoading, error } = useMarkdown(contentUrl);
 
   const githubUrl = `https://github.com/sdieunidou/${certification.id}-certification/blob/main/${category.folder}/${topic.path}`;
+
+  // Reset scroll to top when topic changes
+  useEffect(() => {
+    if (scrollRef.current) {
+      const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (viewport) {
+        viewport.scrollTop = 0;
+      }
+    }
+  }, [topicFullId]);
 
   return (
     <div className="flex-1 flex flex-col h-full bg-background min-h-0">
@@ -97,7 +109,7 @@ export function ContentViewer({
       </header>
 
       {/* Content */}
-      <ScrollArea className="flex-1 min-h-0">
+      <ScrollArea ref={scrollRef} className="flex-1 min-h-0">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
