@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Check, Star, ChevronLeft, ChevronRight, Loader2, AlertCircle, ExternalLink, HelpCircle } from 'lucide-react';
 import { CodeBlock } from '@/components/CodeBlock';
+import { TableOfContents } from '@/components/TableOfContents';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -158,7 +159,15 @@ export const ContentViewer = forwardRef<ContentViewerHandle, ContentViewerProps>
             </Button>
           </div>
         </div>
-        <h1 className="text-lg sm:text-2xl font-bold mt-2 sm:mt-3 text-foreground">{topic.title}</h1>
+        <div className="flex items-center justify-between gap-2 mt-2 sm:mt-3">
+          <h1 className="text-lg sm:text-2xl font-bold text-foreground flex-1">{topic.title}</h1>
+          {!isLoading && !error && content && (
+            <TableOfContents 
+              content={content} 
+              scrollContainer={scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null}
+            />
+          )}
+        </div>
       </header>
 
       {/* Content */}
