@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import { CheckCircle, XCircle, RotateCcw, HelpCircle, ChevronRight } from 'lucide-react';
+import { CheckCircle, XCircle, RotateCcw, HelpCircle, ChevronRight, CheckSquare, Circle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface QuizQuestion {
   id: number;
@@ -141,13 +142,21 @@ export function Quiz({ title, questions, onReset, onComplete }: QuizProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="font-medium text-foreground">{currentQuestion.question}</p>
-        
-        {currentQuestion.type === 'multiple_choice' && (
-          <p className="text-xs text-muted-foreground italic">
-            Plusieurs réponses possibles
-          </p>
-        )}
+        <div className="space-y-2">
+          <p className="font-medium text-foreground">{currentQuestion.question}</p>
+          
+          {currentQuestion.type === 'multiple_choice' ? (
+            <Badge variant="secondary" className="gap-1.5 text-xs font-normal">
+              <CheckSquare className="h-3 w-3" />
+              Plusieurs réponses possibles
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="gap-1.5 text-xs font-normal text-muted-foreground">
+              <Circle className="h-3 w-3" />
+              Une seule réponse
+            </Badge>
+          )}
+        </div>
 
         <div className="space-y-2">
           {currentQuestion.shuffledOptions.map((option, idx) => {
