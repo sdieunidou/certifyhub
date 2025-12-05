@@ -19,7 +19,7 @@ const Index = () => {
   const { certificationId, categoryId, topicId } = useParams();
   const navigate = useNavigate();
   
-  const [selectedCertification, setSelectedCertification] = useState<string>(certificationId || 'symfony');
+  const [selectedCertification, setSelectedCertification] = useState<string | null>(certificationId || null);
   const [selectedTopic, setSelectedTopic] = useState<SelectedTopic | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showMarkAsReadDialog, setShowMarkAsReadDialog] = useState(false);
@@ -79,9 +79,9 @@ const Index = () => {
     return counts;
   }, [completed]);
 
-  const currentCert = certifications.find(c => c.id === selectedCertification);
-  const currentTotal = totalCounts[selectedCertification] || 0;
-  const currentCompleted = completedCounts[selectedCertification] || 0;
+  const currentCert = selectedCertification ? certifications.find(c => c.id === selectedCertification) : null;
+  const currentTotal = selectedCertification ? (totalCounts[selectedCertification] || 0) : 0;
+  const currentCompleted = selectedCertification ? (completedCounts[selectedCertification] || 0) : 0;
 
   // Get flattened list of all topics for navigation
   const allTopics = useMemo(() => {
@@ -209,6 +209,7 @@ const Index = () => {
 
   const handleGoHome = useCallback(() => {
     setSelectedTopic(null);
+    setSelectedCertification(null);
     navigate('/');
   }, [navigate]);
 

@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 
 interface SidebarProps {
   certifications: Certification[];
-  selectedCertification: string;
+  selectedCertification: string | null;
   selectedTopic: string | null;
   onSelectCertification: (id: string) => void;
   onSelectTopic: (certId: string, catId: string, topicId: string) => void;
@@ -38,7 +38,7 @@ export function Sidebar({
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const currentCert = certifications.find(c => c.id === selectedCertification);
+  const currentCert = selectedCertification ? certifications.find(c => c.id === selectedCertification) : null;
 
   const toggleCategory = (categoryId: string) => {
     setExpandedCategories(prev =>
@@ -126,38 +126,43 @@ export function Sidebar({
           ))}
         </div>
 
-        {/* Progress Bar */}
-        <div className="space-y-2">
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>Progression</span>
-            <span>{completedCount}/{totalTopics} ({progressPercent}%)</span>
+        {/* Progress Bar - only show when certification is selected */}
+        {selectedCertification && (
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Progression</span>
+              <span>{completedCount}/{totalTopics} ({progressPercent}%)</span>
+            </div>
+            <div className="h-2 bg-progress-incomplete rounded-full overflow-hidden">
+              <div
+                className="h-full bg-progress-complete transition-all duration-500 ease-out"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
           </div>
-          <div className="h-2 bg-progress-incomplete rounded-full overflow-hidden">
-            <div
-              className="h-full bg-progress-complete transition-all duration-500 ease-out"
-              style={{ width: `${progressPercent}%` }}
+        )}
+      </div>
+
+      {/* Search - only show when certification is selected */}
+      {selectedCertification && (
+        <div className="p-4 border-b border-sidebar-border">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher une fiche..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 bg-sidebar-accent border-sidebar-border"
             />
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Search */}
-      <div className="p-4 border-b border-sidebar-border">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Rechercher une fiche..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-sidebar-accent border-sidebar-border"
-          />
-        </div>
-      </div>
-
-      {/* Categories */}
-      <ScrollArea className="flex-1">
-        <div className="p-2">
-          {filteredCategories?.map(category => {
+      {/* Categories - only show when certification is selected */}
+      {selectedCertification && (
+        <ScrollArea className="flex-1">
+          <div className="p-2">
+            {filteredCategories?.map(category => {
             const isExpanded = expandedCategories.includes(category.id) || !!searchQuery;
             const topics = filterTopics(category.topics, category.id);
             const categoryCompletedCount = category.topics.filter(t => 
@@ -222,25 +227,28 @@ export function Sidebar({
               </div>
             );
           })}
-        </div>
-      </ScrollArea>
+          </div>
+        </ScrollArea>
+      )}
 
-      {/* Footer */}
-      <div className="p-4 border-t border-sidebar-border space-y-2">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <BookOpen className="h-4 w-4" />
-          <span>{currentCert?.name} {currentCert?.version}</span>
+      {/* Footer - only show when certification is selected */}
+      {selectedCertification && currentCert && (
+        <div className="p-4 border-t border-sidebar-border space-y-2">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <BookOpen className="h-4 w-4" />
+            <span>{currentCert.name} {currentCert.version}</span>
+          </div>
+          <a
+            href={`https://github.com/sdieunidou/${currentCert.id}-certification`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors"
+          >
+            <Github className="h-4 w-4" />
+            <span>Voir le dépôt GitHub</span>
+          </a>
         </div>
-        <a
-          href={`https://github.com/sdieunidou/${currentCert?.id}-certification`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors"
-        >
-          <Github className="h-4 w-4" />
-          <span>Voir le dépôt GitHub</span>
-        </a>
-      </div>
+      )}
     </aside>
   );
 }
