@@ -82,7 +82,6 @@ export const certifications: Certification[] = [
           { id: 'request-handling', title: 'Traitement de la requête', path: 'request-handling.md' },
           { id: 'exception-handling', title: 'Gestion des exceptions', path: 'exception-handling.md' },
           { id: 'event-dispatcher', title: 'Event Dispatcher', path: 'event-dispatcher.md' },
-          { id: 'best-practices', title: 'Bonnes pratiques officielles', path: 'best-practices.md' },
           { id: 'release-management', title: 'Release management', path: 'release-management.md' },
           { id: 'bc-promise', title: 'Rétrocompatibilité', path: 'bc-promise.md' },
           { id: 'depreciations', title: 'Dépréciations', path: 'depreciations.md' },
@@ -281,6 +280,7 @@ export const certifications: Certification[] = [
         title: 'Divers',
         folder: '14-divers',
         topics: [
+          { id: 'best-practices', title: 'Bonnes pratiques officielles', path: 'best-practices.md' },
           { id: 'configuration-misc', title: 'Configuration', path: 'configuration.md' },
           { id: 'errors', title: 'Gestion erreurs', path: 'errors.md' },
           { id: 'debug-misc', title: 'Débogage', path: 'debug.md' },
