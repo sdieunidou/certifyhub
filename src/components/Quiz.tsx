@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -22,11 +22,21 @@ interface QuizProps {
 }
 
 export function Quiz({ title, questions, onReset }: QuizProps) {
+  const cardRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [results, setResults] = useState<{ correct: number; total: number } | null>(null);
   const [answeredQuestions, setAnsweredQuestions] = useState<Map<number, { selected: string[]; isCorrect: boolean }>>(new Map());
+
+  // Scroll to bottom of card when answer is submitted
+  useEffect(() => {
+    if (hasSubmitted && cardRef.current) {
+      setTimeout(() => {
+        cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }, 100);
+    }
+  }, [hasSubmitted]);
 
   const currentQuestion = questions[currentIndex];
   const isLastQuestion = currentIndex === questions.length - 1;
@@ -89,8 +99,8 @@ export function Quiz({ title, questions, onReset }: QuizProps) {
     const percentage = Math.round((results.correct / results.total) * 100);
     const isGood = percentage >= 70;
 
-    return (
-      <Card className="border-border bg-card">
+  return (
+    <Card ref={cardRef} className="border-border bg-card">
         <CardContent className="pt-6 text-center">
           <div className={cn(
             "text-6xl font-bold mb-4",
