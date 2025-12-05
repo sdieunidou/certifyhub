@@ -129,6 +129,17 @@
   code, pre, .font-mono {
     font-family: 'JetBrains Mono', monospace;
   }
+
+  /* Fix ScrollArea overflow on mobile */
+  [data-radix-scroll-area-viewport] {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+  
+  [data-radix-scroll-area-viewport] > div {
+    max-width: 100% !important;
+    display: block !important;
+  }
 }
 
 @layer utilities {
