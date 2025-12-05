@@ -1,24 +1,24 @@
-# CertifPrep - Symfony & Sylius Certification Study Guide
+# CertifyHub - Symfony & Sylius Certification Study Guide
 
 [![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://easycertify.lovable.app/)
 [![Built with Lovable](https://img.shields.io/badge/built%20with-Lovable-ff69b4)](https://lovable.dev)
 
-A modern, interactive study interface designed to help developers prepare for **Symfony 7.0** and **Sylius v2** certifications. Browse structured study guides, track your progress, and navigate content efficiently.
+A modern, interactive study interface designed to help developers prepare for **Symfony 7.0** and **Sylius v2** certifications. Browse structured study guides, track your progress, test your knowledge with quizzes, and navigate content efficiently.
 
 🔗 **[Use the App →](https://easycertify.lovable.app/)**
-
-![CertifPrep Screenshot](https://img.shields.io/badge/status-active-success)
 
 ## ✨ Features
 
 - **📚 Structured Content** - Organized study guides covering all certification topics
 - **🔄 Dual Certification Support** - Switch between Symfony and Sylius content instantly
 - **📊 Progress Tracking** - Mark topics as completed and track your overall progress
+- **🧠 Interactive Quizzes** - Test your knowledge with randomized quizzes for each topic
 - **⭐ Favorites** - Bookmark important topics for quick access
-- **🔍 Quick Search** - Find specific topics across all categories
 - **⌨️ Keyboard Navigation** - Use arrow keys (← →) to navigate between topics
+- **🔗 Shareable URLs** - Share direct links to specific topics
 - **🎨 Syntax Highlighting** - Beautiful code highlighting for PHP examples
 - **🌙 Dark Mode** - Eye-friendly dark theme optimized for reading
+- **📱 Responsive Design** - Works on desktop, tablet, and mobile
 - **💾 Local Storage** - Your progress is saved locally in your browser
 
 ## 🚀 Getting Started
@@ -31,10 +31,10 @@ Simply visit **[https://easycertify.lovable.app/](https://easycertify.lovable.ap
 
 ```bash
 # Clone the repository
-git clone <YOUR_GIT_URL>
+git clone https://github.com/your-username/certifyhub.git
 
 # Navigate to project directory
-cd <YOUR_PROJECT_NAME>
+cd certifyhub
 
 # Install dependencies
 npm install
@@ -61,51 +61,63 @@ The study content is fetched directly from these GitHub repositories:
 - **shadcn/ui** - UI Components
 - **React Markdown** - Content Rendering
 - **React Syntax Highlighter** - Code Highlighting
+- **React Router** - Client-side Routing
 
 ## 📁 Project Structure
 
 ```
 src/
 ├── components/
-│   ├── Sidebar.tsx        # Navigation sidebar with categories
-│   ├── ContentViewer.tsx  # Main content display area
-│   ├── WelcomeScreen.tsx  # Landing page
-│   ├── CodeBlock.tsx      # Syntax highlighted code blocks
-│   └── ui/                # shadcn/ui components
+│   ├── Sidebar.tsx           # Navigation sidebar with categories
+│   ├── ContentViewer.tsx     # Main content display area
+│   ├── WelcomeScreen.tsx     # Landing page
+│   ├── Quiz.tsx              # Interactive quiz component
+│   ├── CodeBlock.tsx         # Syntax highlighted code blocks
+│   ├── MarkAsReadDialog.tsx  # Confirmation dialog for progress
+│   └── ui/                   # shadcn/ui components
 ├── data/
 │   └── certificationData.ts  # Certification structure & topics
 ├── hooks/
-│   ├── useProgress.ts     # Progress tracking logic
-│   └── useMarkdown.ts     # Markdown fetching hook
+│   ├── useProgress.ts        # Progress tracking logic
+│   ├── useMarkdown.ts        # Markdown fetching hook
+│   └── useQuiz.ts            # Quiz data fetching & randomization
 └── pages/
-    └── Index.tsx          # Main application page
+    └── Index.tsx             # Main application page
 ```
 
 ## 🎯 Certification Topics Covered
 
-### Symfony 7.0
-- PHP Fundamentals
+### Symfony 7.0 (20 Categories)
+- PHP Fundamentals & SPL
+- Design Patterns & SOLID
 - HTTP Protocol
 - Symfony Architecture
 - Controllers & Routing
 - Twig Templating
 - Forms & Validation
 - Dependency Injection
-- Security
+- Security & Authentication
 - HTTP Cache
 - Console Commands
 - Automated Testing
+- Doctrine ORM
+- API & REST
+- Frontend (AssetMapper, Webpack Encore)
+- Architecture (DDD, Clean Architecture)
 - And more...
 
-### Sylius v2
+### Sylius v2 (16 Categories)
 - Addressing
 - Cart & Checkout
 - Promotions (Cart & Catalog)
 - Channels & Currency
-- Extensibility
+- Extensibility & Customization
 - Products & Taxonomy
 - Orders & Payments
 - Shipping & Taxation
+- Inventory Management
+- Customer Management
+- Admin & API
 - And more...
 
 ## 🤝 Contributing
