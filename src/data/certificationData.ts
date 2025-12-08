@@ -38,6 +38,7 @@ export const certifications: Certification[] = [
         folder: '01-php',
         topics: [
           { id: 'api-php', title: 'API PHP (8.2)', path: 'api-php.md' },
+          { id: 'psr', title: 'PSR & PHP-FIG', path: 'psr.md' },
           { id: 'poo', title: 'Programmation Orientée Objet', path: 'poo.md' },
           { id: 'namespaces', title: 'Namespaces', path: 'namespaces.md' },
           { id: 'interfaces', title: 'Interfaces', path: 'interfaces.md' },
