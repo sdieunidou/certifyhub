@@ -336,7 +336,6 @@ export const certifications: Certification[] = [
           { id: 'performance', title: 'Performance', path: 'performance.md' },
           { id: 'profiler-misc', title: 'Web Profiler', path: 'profiler.md' },
           { id: 'runtime', title: 'Runtime', path: 'runtime.md' },
-          { id: 'attributes', title: 'Attributs PHP natifs', path: 'attributes.md' },
           { id: 'bundles', title: 'Création de Bundle', path: 'bundles.md' },
         ],
       },
