@@ -318,6 +318,7 @@ export const certifications: Certification[] = [
           { id: 'introspection', title: 'Introspection', path: 'introspection.md' },
           { id: 'bridge', title: 'PHPUnit Bridge', path: 'bridge.md' },
           { id: 'legacy', title: 'Legacy', path: 'legacy.md' },
+          { id: 'phpunit-basics', title: 'PHPUnit Basics', path: 'phpunit-basics.md' },
         ],
       },
       {
