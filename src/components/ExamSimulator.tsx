@@ -13,6 +13,11 @@ import {
   ChevronDown,
   BarChart3,
   ExternalLink,
+  Flame,
+  Zap,
+  Trophy,
+  Target,
+  Timer,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -34,6 +39,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import confetti from 'canvas-confetti';
 
 interface ExamQuestion {
   id: string;
@@ -83,6 +89,10 @@ export function ExamSimulator({
   const [showConfirmSubmit, setShowConfirmSubmit] = useState(false);
   const [showConfirmClose, setShowConfirmClose] = useState(false);
   const [examResult, setExamResult] = useState<ExamResult | null>(null);
+  const [sessionStats, setSessionStats] = useState<{
+    bestStreak: number;
+    avgTimePerQuestion: number;
+  } | null>(null);
 
   const currentQuestion = questions[currentIndex];
 
@@ -153,6 +163,10 @@ export function ExamSimulator({
     const timeUsed = timeLimit * 60 - timeRemaining;
     const results: ExamResult['answers'] = [];
     let correctCount = 0;
+    
+    // Calculate best streak
+    let currentStreak = 0;
+    let bestStreak = 0;
 
     questions.forEach((q) => {
       const userAnswers = answers.get(q.id) || [];
@@ -160,7 +174,13 @@ export function ExamSimulator({
         userAnswers.length === q.correct_answers.length &&
         userAnswers.every((a) => q.correct_answers.includes(a));
 
-      if (isCorrect) correctCount++;
+      if (isCorrect) {
+        correctCount++;
+        currentStreak++;
+        bestStreak = Math.max(bestStreak, currentStreak);
+      } else {
+        currentStreak = 0;
+      }
 
       results.push({
         questionId: q.id,
@@ -177,7 +197,54 @@ export function ExamSimulator({
     };
 
     setExamResult(result);
+    setSessionStats({
+      bestStreak,
+      avgTimePerQuestion: Math.round(timeUsed / questions.length),
+    });
     setIsSubmitted(true);
+    
+    // Trigger confetti based on score
+    const score = Math.round((correctCount / questions.length) * 100);
+    if (score >= 70) {
+      setTimeout(() => {
+        if (score === 100) {
+          // Perfect score - big celebration
+          confetti({
+            particleCount: 150,
+            spread: 180,
+            origin: { y: 0.6 },
+            colors: ['#FFD700', '#FFA500', '#FF6347', '#00FF00', '#00CED1'],
+          });
+          setTimeout(() => {
+            confetti({
+              particleCount: 100,
+              spread: 120,
+              origin: { x: 0.2, y: 0.5 },
+            });
+            confetti({
+              particleCount: 100,
+              spread: 120,
+              origin: { x: 0.8, y: 0.5 },
+            });
+          }, 250);
+        } else if (score >= 85) {
+          // Expert score
+          confetti({
+            particleCount: 100,
+            spread: 100,
+            origin: { y: 0.6 },
+          });
+        } else {
+          // Passed
+          confetti({
+            particleCount: 50,
+            spread: 60,
+            origin: { y: 0.7 },
+          });
+        }
+      }, 300);
+    }
+    
     onComplete(result);
   }, [questions, answers, timeLimit, timeRemaining, onComplete]);
 
@@ -272,9 +339,37 @@ export function ExamSimulator({
     });
   };
 
+  // Get dynamic title based on score
+  const getScoreTitle = (score: number) => {
+    if (score === 100) return { title: 'Maître', icon: Trophy, color: 'text-yellow-500' };
+    if (score >= 85) return { title: 'Expert', icon: Zap, color: 'text-purple-500' };
+    if (score >= 70) return { title: 'Compétent', icon: Target, color: 'text-accent' };
+    if (score >= 50) return { title: 'Apprenti', icon: Flame, color: 'text-orange-500' };
+    return { title: 'Novice', icon: Timer, color: 'text-muted-foreground' };
+  };
+
+  // Find strongest and weakest categories
+  const getStrongestWeakest = () => {
+    if (categoryStats.length === 0) return { strongest: null, weakest: null };
+    
+    const sorted = [...categoryStats].sort((a, b) => {
+      const scoreA = a.correct / a.total;
+      const scoreB = b.correct / b.total;
+      return scoreB - scoreA;
+    });
+    
+    return {
+      strongest: sorted[0],
+      weakest: sorted.length > 1 ? sorted[sorted.length - 1] : null,
+    };
+  };
+
   if (isSubmitted && examResult) {
     const score = Math.round((examResult.correctAnswers / examResult.questionsCount) * 100);
     const passed = score >= 70;
+    const titleInfo = getScoreTitle(score);
+    const TitleIcon = titleInfo.icon;
+    const { strongest, weakest } = getStrongestWeakest();
 
     return (
       <div className="fixed inset-0 z-50 bg-background flex flex-col">
@@ -290,10 +385,21 @@ export function ExamSimulator({
             {/* Score card */}
             <div
               className={cn(
-                'p-8 rounded-xl text-center',
+                'p-8 rounded-xl text-center animate-scale-in',
                 passed ? 'bg-accent/20' : 'bg-destructive/20'
               )}
             >
+              {/* Dynamic title badge */}
+              <div className={cn('inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4', 
+                score === 100 ? 'bg-yellow-500/20' : 
+                score >= 85 ? 'bg-purple-500/20' : 
+                score >= 70 ? 'bg-accent/20' : 
+                score >= 50 ? 'bg-orange-500/20' : 'bg-muted'
+              )}>
+                <TitleIcon className={cn('h-5 w-5', titleInfo.color)} />
+                <span className={cn('font-semibold', titleInfo.color)}>{titleInfo.title}</span>
+              </div>
+              
               <div
                 className={cn(
                   'text-6xl font-bold mb-2',
@@ -312,6 +418,44 @@ export function ExamSimulator({
                 Temps utilisé: {formatTime(examResult.timeUsed)}
               </div>
             </div>
+
+            {/* Session stats */}
+            {sessionStats && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in">
+                <div className="p-4 rounded-lg border bg-card text-center">
+                  <Flame className="h-6 w-6 mx-auto mb-2 text-orange-500" />
+                  <div className="text-2xl font-bold text-foreground">{sessionStats.bestStreak}</div>
+                  <div className="text-xs text-muted-foreground">Meilleur streak</div>
+                </div>
+                <div className="p-4 rounded-lg border bg-card text-center">
+                  <Timer className="h-6 w-6 mx-auto mb-2 text-blue-500" />
+                  <div className="text-2xl font-bold text-foreground">{sessionStats.avgTimePerQuestion}s</div>
+                  <div className="text-xs text-muted-foreground">Moy. / question</div>
+                </div>
+                {strongest && (
+                  <div className="p-4 rounded-lg border bg-card text-center">
+                    <CheckCircle2 className="h-6 w-6 mx-auto mb-2 text-accent" />
+                    <div className="text-sm font-bold text-foreground truncate" title={strongest.categoryTitle}>
+                      {Math.round((strongest.correct / strongest.total) * 100)}%
+                    </div>
+                    <div className="text-xs text-muted-foreground truncate" title={strongest.categoryTitle}>
+                      {strongest.categoryTitle}
+                    </div>
+                  </div>
+                )}
+                {weakest && weakest.categoryId !== strongest?.categoryId && (
+                  <div className="p-4 rounded-lg border bg-card text-center">
+                    <XCircle className="h-6 w-6 mx-auto mb-2 text-destructive" />
+                    <div className="text-sm font-bold text-foreground truncate" title={weakest.categoryTitle}>
+                      {Math.round((weakest.correct / weakest.total) * 100)}%
+                    </div>
+                    <div className="text-xs text-muted-foreground truncate" title={weakest.categoryTitle}>
+                      {weakest.categoryTitle}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Stats by category */}
             <div className="space-y-4">
