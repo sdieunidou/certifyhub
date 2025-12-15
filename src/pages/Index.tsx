@@ -340,6 +340,8 @@ const Index = () => {
           const data = await response.json();
           if (data.questions) {
             data.questions.forEach((q: any) => {
+              // Convert raw GitHub URL to blob URL for viewing
+              const jsonUrl = quizUrl.replace('raw.githubusercontent.com', 'github.com').replace('/main/', '/blob/main/');
               const questionObj = {
                 ...q,
                 id: `${category.id}-${topic.id}-${q.id}`,
@@ -347,6 +349,7 @@ const Index = () => {
                 topicTitle: topic.title,
                 categoryId: category.id,
                 categoryTitle: category.title,
+                jsonUrl,
               };
               questionsByCategory[category.id].push(questionObj);
               totalFound++;
