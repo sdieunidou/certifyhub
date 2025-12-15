@@ -12,6 +12,7 @@ import {
   RotateCcw,
   ChevronDown,
   BarChart3,
+  ExternalLink,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -45,6 +46,7 @@ interface ExamQuestion {
   options: string[];
   correct_answers: string[];
   explanation: string;
+  jsonUrl?: string;
 }
 
 interface ExamSimulatorProps {
@@ -403,19 +405,33 @@ export function ExamSimulator({
                                               <XCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
                                             )}
                                             <div className="flex-1 min-w-0">
-                                              <div className="font-medium text-foreground">
-                                                <ReactMarkdown
-                                                  components={{
-                                                    code: ({ className, children }) => (
-                                                      <CodeBlock className={className} inline={!className}>
-                                                        {String(children).replace(/\n$/, '')}
-                                                      </CodeBlock>
-                                                    ),
-                                                    p: ({ children }) => <span>{children}</span>,
-                                                  }}
-                                                >
-                                                  {q.question}
-                                                </ReactMarkdown>
+                                              <div className="flex items-start justify-between gap-2">
+                                                <div className="font-medium text-foreground flex-1">
+                                                  <ReactMarkdown
+                                                    components={{
+                                                      code: ({ className, children }) => (
+                                                        <CodeBlock className={className} inline={!className}>
+                                                          {String(children).replace(/\n$/, '')}
+                                                        </CodeBlock>
+                                                      ),
+                                                      p: ({ children }) => <span>{children}</span>,
+                                                    }}
+                                                  >
+                                                    {q.question}
+                                                  </ReactMarkdown>
+                                                </div>
+                                                {q.jsonUrl && (
+                                                  <a
+                                                    href={q.jsonUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="shrink-0 p-1 rounded hover:bg-muted transition-colors"
+                                                    title="Voir le fichier JSON source"
+                                                  >
+                                                    <ExternalLink className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                                                  </a>
+                                                )}
                                               </div>
                                               {!isCorrect && (
                                                 <div className="mt-2 space-y-1 text-xs">
