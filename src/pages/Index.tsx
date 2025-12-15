@@ -311,8 +311,13 @@ const Index = () => {
       return;
     }
 
-    const questions: any[] = [];
+    const questionsByCategory: Record<string, any[]> = {};
     const selectedCategories = cert.categories.filter(c => config.categories.includes(c.id));
+    
+    // Initialize category buckets
+    selectedCategories.forEach(c => {
+      questionsByCategory[c.id] = [];
+    });
     
     // Calculate total topics to fetch
     const allTopics: { category: typeof selectedCategories[0]; topic: typeof selectedCategories[0]['topics'][0] }[] = [];
@@ -324,6 +329,7 @@ const Index = () => {
     
     setExamLoadingProgress({ current: 0, total: allTopics.length, found: 0 });
 
+    let totalFound = 0;
     for (let i = 0; i < allTopics.length; i++) {
       const { category, topic } = allTopics[i];
       const quizUrl = `${cert.baseUrl}${category.folder}/${topic.path}.json`;
@@ -334,32 +340,71 @@ const Index = () => {
           const data = await response.json();
           if (data.questions) {
             data.questions.forEach((q: any) => {
-              questions.push({
+              const questionObj = {
                 ...q,
                 id: `${category.id}-${topic.id}-${q.id}`,
                 topicId: topic.id,
                 topicTitle: topic.title,
+                categoryId: category.id,
                 categoryTitle: category.title,
-              });
+              };
+              questionsByCategory[category.id].push(questionObj);
+              totalFound++;
             });
           }
         }
       } catch {}
       
-      setExamLoadingProgress({ current: i + 1, total: allTopics.length, found: questions.length });
+      setExamLoadingProgress({ current: i + 1, total: allTopics.length, found: totalFound });
     }
 
     setExamLoading(false);
 
     // Check if we have enough questions
-    if (questions.length === 0) {
+    const allQuestions = Object.values(questionsByCategory).flat();
+    if (allQuestions.length === 0) {
       alert('Aucune question trouvée pour les catégories sélectionnées. Les fichiers quiz ne sont peut-être pas encore disponibles.');
       return;
     }
 
-    // Shuffle and limit questions
-    const shuffled = questions.sort(() => Math.random() - 0.5);
-    const limited = shuffled.slice(0, Math.min(config.questionsCount, questions.length));
+    // Apply min questions per category if enabled
+    let finalQuestions: any[] = [];
+    const minConfig = config.minQuestionsPerCategory;
+    
+    if (minConfig?.enabled) {
+      // First, ensure minimum questions per category
+      selectedCategories.forEach(category => {
+        const categoryQuestions = [...questionsByCategory[category.id]];
+        // Shuffle category questions
+        categoryQuestions.sort(() => Math.random() - 0.5);
+        
+        const minRequired = minConfig.global ?? minConfig.perCategory?.[category.id] ?? 0;
+        const toTake = Math.min(minRequired, categoryQuestions.length);
+        
+        // Add required minimum questions
+        finalQuestions.push(...categoryQuestions.slice(0, toTake));
+        // Remove taken questions from pool
+        questionsByCategory[category.id] = categoryQuestions.slice(toTake);
+      });
+      
+      // Then fill remaining with random questions from all categories
+      const remainingPool = Object.values(questionsByCategory).flat();
+      remainingPool.sort(() => Math.random() - 0.5);
+      
+      const remaining = config.questionsCount - finalQuestions.length;
+      if (remaining > 0) {
+        finalQuestions.push(...remainingPool.slice(0, remaining));
+      }
+      
+      // Final shuffle to mix categories
+      finalQuestions.sort(() => Math.random() - 0.5);
+    } else {
+      // Original behavior: just shuffle all and limit
+      finalQuestions = allQuestions.sort(() => Math.random() - 0.5);
+    }
+    
+    // Limit to requested count
+    const limited = finalQuestions.slice(0, Math.min(config.questionsCount, finalQuestions.length));
     
     setExamQuestions(limited);
     setExamRunning(true);
