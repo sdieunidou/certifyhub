@@ -372,7 +372,7 @@ const Index = () => {
     const minConfig = config.minQuestionsPerCategory;
     
     if (minConfig?.enabled) {
-      // First, ensure minimum questions per category
+      // First, ensure minimum questions per category (GUARANTEED)
       selectedCategories.forEach(category => {
         const categoryQuestions = [...questionsByCategory[category.id]];
         // Shuffle category questions
@@ -387,7 +387,7 @@ const Index = () => {
         questionsByCategory[category.id] = categoryQuestions.slice(toTake);
       });
       
-      // Then fill remaining with random questions from all categories
+      // Then fill remaining with random questions from all categories (up to questionsCount)
       const remainingPool = Object.values(questionsByCategory).flat();
       remainingPool.sort(() => Math.random() - 0.5);
       
@@ -399,14 +399,12 @@ const Index = () => {
       // Final shuffle to mix categories
       finalQuestions.sort(() => Math.random() - 0.5);
     } else {
-      // Original behavior: just shuffle all and limit
+      // Original behavior: just shuffle all and limit to questionsCount
       finalQuestions = allQuestions.sort(() => Math.random() - 0.5);
+      finalQuestions = finalQuestions.slice(0, Math.min(config.questionsCount, finalQuestions.length));
     }
     
-    // Limit to requested count
-    const limited = finalQuestions.slice(0, Math.min(config.questionsCount, finalQuestions.length));
-    
-    setExamQuestions(limited);
+    setExamQuestions(finalQuestions);
     setExamRunning(true);
   }, [examCertification]);
 
