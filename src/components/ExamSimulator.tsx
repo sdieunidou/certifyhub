@@ -10,6 +10,8 @@ import {
   CheckCircle2,
   XCircle,
   RotateCcw,
+  ChevronDown,
+  BarChart3,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -26,11 +28,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 
 interface ExamQuestion {
   id: string;
   topicId: string;
   topicTitle: string;
+  categoryId: string;
   categoryTitle: string;
   question: string;
   type: 'single_choice' | 'multiple_choice';
@@ -182,6 +190,86 @@ export function ExamSimulator({
     return 'text-foreground';
   };
 
+  // Compute category and topic stats
+  const categoryStats = useMemo(() => {
+    if (!examResult) return [];
+    
+    const stats: Record<string, {
+      categoryId: string;
+      categoryTitle: string;
+      total: number;
+      correct: number;
+      topics: Record<string, {
+        topicId: string;
+        topicTitle: string;
+        total: number;
+        correct: number;
+        questions: typeof questions;
+      }>;
+    }> = {};
+    
+    questions.forEach((q) => {
+      const result = examResult.answers.find((a) => a.questionId === q.id);
+      const isCorrect = result?.isCorrect ?? false;
+      
+      if (!stats[q.categoryId]) {
+        stats[q.categoryId] = {
+          categoryId: q.categoryId,
+          categoryTitle: q.categoryTitle,
+          total: 0,
+          correct: 0,
+          topics: {},
+        };
+      }
+      
+      stats[q.categoryId].total++;
+      if (isCorrect) stats[q.categoryId].correct++;
+      
+      if (!stats[q.categoryId].topics[q.topicId]) {
+        stats[q.categoryId].topics[q.topicId] = {
+          topicId: q.topicId,
+          topicTitle: q.topicTitle,
+          total: 0,
+          correct: 0,
+          questions: [],
+        };
+      }
+      
+      stats[q.categoryId].topics[q.topicId].total++;
+      if (isCorrect) stats[q.categoryId].topics[q.topicId].correct++;
+      stats[q.categoryId].topics[q.topicId].questions.push(q);
+    });
+    
+    return Object.values(stats).sort((a, b) => a.categoryTitle.localeCompare(b.categoryTitle));
+  }, [questions, examResult]);
+
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
+
+  const toggleCategory = (categoryId: string) => {
+    setExpandedCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(categoryId)) {
+        next.delete(categoryId);
+      } else {
+        next.add(categoryId);
+      }
+      return next;
+    });
+  };
+
+  const toggleTopic = (topicKey: string) => {
+    setExpandedTopics(prev => {
+      const next = new Set(prev);
+      if (next.has(topicKey)) {
+        next.delete(topicKey);
+      } else {
+        next.add(topicKey);
+      }
+      return next;
+    });
+  };
+
   if (isSubmitted && examResult) {
     const score = Math.round((examResult.correctAnswers / examResult.questionsCount) * 100);
     const passed = score >= 70;
@@ -196,7 +284,7 @@ export function ExamSimulator({
         </header>
 
         <main className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-2xl mx-auto space-y-8">
+          <div className="max-w-3xl mx-auto space-y-8">
             {/* Score card */}
             <div
               className={cn(
@@ -223,110 +311,188 @@ export function ExamSimulator({
               </div>
             </div>
 
-            {/* Detailed results */}
+            {/* Stats by category */}
             <div className="space-y-4">
-              <h3 className="font-semibold text-foreground">Détail des réponses</h3>
-              {questions.map((q, index) => {
-                const result = examResult.answers.find((a) => a.questionId === q.id);
-                const isCorrect = result?.isCorrect;
-
-                return (
-                  <div
-                    key={q.id}
-                    className={cn(
-                      'p-4 rounded-lg border',
-                      isCorrect ? 'border-accent/50 bg-accent/5' : 'border-destructive/50 bg-destructive/5'
-                    )}
-                  >
-                    <div className="flex items-start gap-3">
-                      {isCorrect ? (
-                        <CheckCircle2 className="h-5 w-5 text-accent shrink-0 mt-0.5" />
-                      ) : (
-                        <XCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm text-muted-foreground mb-1">
-                          Question {index + 1} - {q.categoryTitle}
-                        </div>
-                        <div className="font-medium text-foreground mb-2">
-                          <ReactMarkdown
-                            components={{
-                              code: ({ className, children }) => (
-                                <CodeBlock className={className} inline={!className}>
-                                  {String(children).replace(/\n$/, '')}
-                                </CodeBlock>
-                              ),
-                              p: ({ children }) => <span>{children}</span>,
-                            }}
-                          >
-                            {q.question}
-                          </ReactMarkdown>
-                        </div>
-                        {!isCorrect && (
-                          <div className="text-sm space-y-1">
-                            <div className="text-destructive">
-                              <span>Votre réponse: </span>
-                              {result?.userAnswers.length ? result.userAnswers.map((ans, i) => (
-                                <span key={i}>
-                                  {i > 0 && ', '}
-                                  <ReactMarkdown
-                                    components={{
-                                      code: ({ className, children }) => (
-                                        <CodeBlock className={className} inline>
-                                          {String(children).replace(/\n$/, '')}
-                                        </CodeBlock>
-                                      ),
-                                      p: ({ children }) => <span>{children}</span>,
-                                    }}
-                                  >
-                                    {ans}
-                                  </ReactMarkdown>
-                                </span>
-                              )) : 'Aucune'}
-                            </div>
-                            <div className="text-accent">
-                              <span>Réponse correcte: </span>
-                              {q.correct_answers.map((ans, i) => (
-                                <span key={i}>
-                                  {i > 0 && ', '}
-                                  <ReactMarkdown
-                                    components={{
-                                      code: ({ className, children }) => (
-                                        <CodeBlock className={className} inline>
-                                          {String(children).replace(/\n$/, '')}
-                                        </CodeBlock>
-                                      ),
-                                      p: ({ children }) => <span>{children}</span>,
-                                    }}
-                                  >
-                                    {ans}
-                                  </ReactMarkdown>
-                                </span>
-                              ))}
-                            </div>
-                            {q.explanation && (
-                              <div className="text-muted-foreground mt-2 p-2 bg-muted/50 rounded">
-                                <ReactMarkdown
-                                  components={{
-                                    code: ({ className, children }) => (
-                                      <CodeBlock className={className} inline={!className}>
-                                        {String(children).replace(/\n$/, '')}
-                                      </CodeBlock>
-                                    ),
-                                    p: ({ children }) => <span>{children}</span>,
-                                  }}
-                                >
-                                  {q.explanation}
-                                </ReactMarkdown>
-                              </div>
-                            )}
+              <h3 className="font-semibold text-foreground flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Résultats par catégorie
+              </h3>
+              
+              <div className="space-y-2">
+                {categoryStats.map((cat) => {
+                  const catScore = Math.round((cat.correct / cat.total) * 100);
+                  const isExpanded = expandedCategories.has(cat.categoryId);
+                  
+                  return (
+                    <div key={cat.categoryId} className="border rounded-lg overflow-hidden">
+                      <button
+                        onClick={() => toggleCategory(cat.categoryId)}
+                        className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className={cn(
+                            'w-12 h-12 rounded-lg flex items-center justify-center text-sm font-bold',
+                            catScore >= 70 ? 'bg-accent/20 text-accent' : 'bg-destructive/20 text-destructive'
+                          )}>
+                            {catScore}%
                           </div>
-                        )}
-                      </div>
+                          <div className="text-left flex-1 min-w-0">
+                            <div className="font-medium text-foreground truncate">{cat.categoryTitle}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {cat.correct}/{cat.total} correct{cat.correct > 1 ? 's' : ''}
+                            </div>
+                          </div>
+                        </div>
+                        <ChevronDown className={cn(
+                          'h-5 w-5 text-muted-foreground transition-transform',
+                          isExpanded && 'rotate-180'
+                        )} />
+                      </button>
+                      
+                      {isExpanded && (
+                        <div className="border-t bg-muted/30 p-3 space-y-2">
+                          {Object.values(cat.topics).map((topic) => {
+                            const topicScore = Math.round((topic.correct / topic.total) * 100);
+                            const topicKey = `${cat.categoryId}-${topic.topicId}`;
+                            const isTopicExpanded = expandedTopics.has(topicKey);
+                            
+                            return (
+                              <div key={topic.topicId} className="bg-background rounded-lg overflow-hidden">
+                                <button
+                                  onClick={() => toggleTopic(topicKey)}
+                                  className="w-full p-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                                >
+                                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                                    <div className={cn(
+                                      'w-10 h-10 rounded flex items-center justify-center text-xs font-bold',
+                                      topicScore >= 70 ? 'bg-accent/20 text-accent' : 'bg-destructive/20 text-destructive'
+                                    )}>
+                                      {topicScore}%
+                                    </div>
+                                    <div className="text-left flex-1 min-w-0">
+                                      <div className="text-sm font-medium text-foreground truncate">{topic.topicTitle}</div>
+                                      <div className="text-xs text-muted-foreground">
+                                        {topic.correct}/{topic.total} correct{topic.correct > 1 ? 's' : ''}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <ChevronDown className={cn(
+                                    'h-4 w-4 text-muted-foreground transition-transform',
+                                    isTopicExpanded && 'rotate-180'
+                                  )} />
+                                </button>
+                                
+                                {isTopicExpanded && (
+                                  <div className="border-t p-3 space-y-2">
+                                    {topic.questions.map((q, qIndex) => {
+                                      const result = examResult.answers.find((a) => a.questionId === q.id);
+                                      const isCorrect = result?.isCorrect;
+                                      
+                                      return (
+                                        <div
+                                          key={q.id}
+                                          className={cn(
+                                            'p-3 rounded-lg border text-sm',
+                                            isCorrect ? 'border-accent/50 bg-accent/5' : 'border-destructive/50 bg-destructive/5'
+                                          )}
+                                        >
+                                          <div className="flex items-start gap-2">
+                                            {isCorrect ? (
+                                              <CheckCircle2 className="h-4 w-4 text-accent shrink-0 mt-0.5" />
+                                            ) : (
+                                              <XCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                                            )}
+                                            <div className="flex-1 min-w-0">
+                                              <div className="font-medium text-foreground">
+                                                <ReactMarkdown
+                                                  components={{
+                                                    code: ({ className, children }) => (
+                                                      <CodeBlock className={className} inline={!className}>
+                                                        {String(children).replace(/\n$/, '')}
+                                                      </CodeBlock>
+                                                    ),
+                                                    p: ({ children }) => <span>{children}</span>,
+                                                  }}
+                                                >
+                                                  {q.question}
+                                                </ReactMarkdown>
+                                              </div>
+                                              {!isCorrect && (
+                                                <div className="mt-2 space-y-1 text-xs">
+                                                  <div className="text-destructive">
+                                                    <span>Votre réponse: </span>
+                                                    {result?.userAnswers.length ? result.userAnswers.map((ans, i) => (
+                                                      <span key={i}>
+                                                        {i > 0 && ', '}
+                                                        <ReactMarkdown
+                                                          components={{
+                                                            code: ({ className, children }) => (
+                                                              <CodeBlock className={className} inline>
+                                                                {String(children).replace(/\n$/, '')}
+                                                              </CodeBlock>
+                                                            ),
+                                                            p: ({ children }) => <span>{children}</span>,
+                                                          }}
+                                                        >
+                                                          {ans}
+                                                        </ReactMarkdown>
+                                                      </span>
+                                                    )) : 'Aucune'}
+                                                  </div>
+                                                  <div className="text-accent">
+                                                    <span>Réponse correcte: </span>
+                                                    {q.correct_answers.map((ans, i) => (
+                                                      <span key={i}>
+                                                        {i > 0 && ', '}
+                                                        <ReactMarkdown
+                                                          components={{
+                                                            code: ({ className, children }) => (
+                                                              <CodeBlock className={className} inline>
+                                                                {String(children).replace(/\n$/, '')}
+                                                              </CodeBlock>
+                                                            ),
+                                                            p: ({ children }) => <span>{children}</span>,
+                                                          }}
+                                                        >
+                                                          {ans}
+                                                        </ReactMarkdown>
+                                                      </span>
+                                                    ))}
+                                                  </div>
+                                                  {q.explanation && (
+                                                    <div className="text-muted-foreground mt-2 p-2 bg-muted/50 rounded">
+                                                      <ReactMarkdown
+                                                        components={{
+                                                          code: ({ className, children }) => (
+                                                            <CodeBlock className={className} inline={!className}>
+                                                              {String(children).replace(/\n$/, '')}
+                                                            </CodeBlock>
+                                                          ),
+                                                          p: ({ children }) => <span>{children}</span>,
+                                                        }}
+                                                      >
+                                                        {q.explanation}
+                                                      </ReactMarkdown>
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              )}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
 
             <div className="flex justify-center gap-4 pt-4">
