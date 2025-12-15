@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Play, Clock, HelpCircle, Folder } from 'lucide-react';
+import { Play, Clock, HelpCircle, Folder, Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -12,8 +12,16 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import { Category, Certification } from '@/data/certificationData';
+import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
+import { Certification } from '@/data/certificationData';
 import { cn } from '@/lib/utils';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import { ChevronDown } from 'lucide-react';
 
 interface ExamConfigDialogProps {
   open: boolean;
@@ -26,6 +34,11 @@ export interface ExamConfig {
   questionsCount: number;
   timeLimit: number;
   categories: string[];
+  minQuestionsPerCategory?: {
+    enabled: boolean;
+    global?: number;
+    perCategory?: Record<string, number>;
+  };
 }
 
 export function ExamConfigDialog({
@@ -39,6 +52,13 @@ export function ExamConfigDialog({
   const [selectedCategories, setSelectedCategories] = useState<string[]>(
     certification.categories.map((c) => c.id)
   );
+  
+  // Min questions per category state
+  const [minQuestionsEnabled, setMinQuestionsEnabled] = useState(false);
+  const [useGlobalMin, setUseGlobalMin] = useState(true);
+  const [globalMinQuestions, setGlobalMinQuestions] = useState(1);
+  const [perCategoryMin, setPerCategoryMin] = useState<Record<string, number>>({});
+  const [minQuestionsOpen, setMinQuestionsOpen] = useState(false);
 
   const toggleCategory = (categoryId: string) => {
     setSelectedCategories((prev) =>
@@ -56,12 +76,26 @@ export function ExamConfigDialog({
     setSelectedCategories([]);
   };
 
+  const updatePerCategoryMin = (categoryId: string, value: number) => {
+    setPerCategoryMin((prev) => ({
+      ...prev,
+      [categoryId]: Math.max(0, value),
+    }));
+  };
+
   const handleStart = () => {
     if (selectedCategories.length === 0) return;
     onStart({
       questionsCount,
       timeLimit,
       categories: selectedCategories,
+      minQuestionsPerCategory: minQuestionsEnabled
+        ? {
+            enabled: true,
+            global: useGlobalMin ? globalMinQuestions : undefined,
+            perCategory: !useGlobalMin ? perCategoryMin : undefined,
+          }
+        : undefined,
     });
   };
 
@@ -161,6 +195,97 @@ export function ExamConfigDialog({
               ))}
             </div>
           </div>
+
+          {/* Min questions per category - Optional */}
+          <Collapsible open={minQuestionsOpen} onOpenChange={setMinQuestionsOpen}>
+            <div className="space-y-3 border rounded-lg p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={minQuestionsEnabled}
+                    onCheckedChange={setMinQuestionsEnabled}
+                    id="min-questions-toggle"
+                  />
+                  <Label htmlFor="min-questions-toggle" className="flex items-center gap-2 cursor-pointer">
+                    <Settings2 className="h-4 w-4 text-muted-foreground" />
+                    Minimum par catégorie
+                  </Label>
+                </div>
+                {minQuestionsEnabled && (
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <ChevronDown className={cn("h-4 w-4 transition-transform", minQuestionsOpen && "rotate-180")} />
+                    </Button>
+                  </CollapsibleTrigger>
+                )}
+              </div>
+
+              {minQuestionsEnabled && (
+                <CollapsibleContent className="space-y-3">
+                  <p className="text-xs text-muted-foreground">
+                    Garantir un nombre minimum de questions par catégorie sélectionnée.
+                  </p>
+
+                  {/* Global vs Per Category toggle */}
+                  <div className="flex items-center gap-4 p-2 bg-muted/50 rounded-md">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="minType"
+                        checked={useGlobalMin}
+                        onChange={() => setUseGlobalMin(true)}
+                        className="accent-primary"
+                      />
+                      <span className="text-sm">Global</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="minType"
+                        checked={!useGlobalMin}
+                        onChange={() => setUseGlobalMin(false)}
+                        className="accent-primary"
+                      />
+                      <span className="text-sm">Par catégorie</span>
+                    </label>
+                  </div>
+
+                  {useGlobalMin ? (
+                    <div className="flex items-center gap-3">
+                      <Label className="text-sm whitespace-nowrap">Min. global :</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={10}
+                        value={globalMinQuestions}
+                        onChange={(e) => setGlobalMinQuestions(Math.max(1, Math.min(10, parseInt(e.target.value) || 1)))}
+                        className="w-20"
+                      />
+                      <span className="text-xs text-muted-foreground">question(s) / catégorie</span>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-32 overflow-y-auto">
+                      {certification.categories
+                        .filter((c) => selectedCategories.includes(c.id))
+                        .map((category) => (
+                          <div key={category.id} className="flex items-center gap-2">
+                            <span className="text-sm truncate flex-1">{category.title}</span>
+                            <Input
+                              type="number"
+                              min={0}
+                              max={10}
+                              value={perCategoryMin[category.id] ?? 1}
+                              onChange={(e) => updatePerCategoryMin(category.id, parseInt(e.target.value) || 0)}
+                              className="w-16"
+                            />
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </CollapsibleContent>
+              )}
+            </div>
+          </Collapsible>
         </div>
 
         <DialogFooter>
